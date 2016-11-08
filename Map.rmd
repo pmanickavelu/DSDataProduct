@@ -1,0 +1,24 @@
+## Nov 7th, 2016
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(leaflet)
+library(dplyr)
+
+routes <- read.csv("https://raw.githubusercontent.com/jpatokal/openflights/master/data/routes.dat", header = FALSE) 
+Hroutes <- data.frame(SourceCode= routes$V3, SourceID= routes$V4, DestinationCode= routes$V5, DestinationID= routes$V6)
+airports <- read.csv("https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat", header = FALSE)
+Hairports <- data.frame(AirportID= airports$V1, AirportCode= airports$V5, City= airports$V3, Country= airports$V4, AirportName=airports$V2 , lat= airports$V7, lng= airports$V8, stringsAsFactors = FALSE)
+Hairports <- Hairports[Hairports$AirportCode != "",]
+ScourceCount <- function(k){
+    nrow(filter(Hroutes,SourceCode==k))
+}
+DestinationCount <- function(k){
+    nrow(filter(Hroutes,DestinationCode==k))
+}
+Hairports$Starts <- lapply(as.character(Hairports$AirportCode), ScourceCount)
+Hairports$Ends <- lapply(as.character(Hairports$AirportCode), DestinationCount)
+Hairports <- mutate(Hairports, Starts= Starts[[1]], Ends=Ends[[1]])
+Hairports$TotalFlights <- Hairports$Ends + Hairports$Starts
+Hairports <- mutate(Hairports, popup = paste("Country: ", Country, "<br>City: ", City, "<br>Code: ", AirportCode, "<br>Flight Source:",  Starts,"<br>Flight Destination:", Ends,"<br> Total Flights:", TotalFlights))
+
+addMarkers(addTiles(leaflet(Hairports)),popup=Hairports$popup, clusterOptions = markerClusterOptions())
+```
